@@ -1,44 +1,48 @@
 // server.js
+
+// modules =================================================
 var express        = require('express');
 var app            = express();
-var httpServer = require("http").createServer(app);
-var five = require("johnny-five");
-var io=require('socket.io')(httpServer);
+var bodyParser     = require('body-parser');
+var methodOverride = require('method-override');
 
-var port = 3000;
+// configuration ===========================================
 
+// config files
+var db = require('./config/db');
+
+// set our port
+var port = process.env.PORT || 8080;
+
+// connect to our mongoDB database
+// (uncomment after you enter in your own credentials in config/db.js)
+// mongoose.connect(db.url);
+
+// get all data/stuff of the body (POST) parameters
+// parse application/json
+app.use(bodyParser.json());
+
+// parse application/vnd.api+json as json
+app.use(bodyParser.json({ type: 'application/vnd.api+json' }));
+
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// override with the X-HTTP-Method-Override header in the request. simulate DELETE/PUT
+app.use(methodOverride('X-HTTP-Method-Override'));
+
+// set the static files location /public/img will be /img for users
 app.use(express.static(__dirname + '/public'));
 
-app.get('/', function(req, res) {
-        res.sendFile(__dirname + '/public/index.html');
-});
+// routes ==================================================
+require('./app/routes')(app); // configure our routes
 
-httpServer.listen(port);
-console.log('Server available at http://localhost:' + port);
-var led;
+// start app ===============================================
+// startup our app at http://localhost:8080
+app.listen(port);
 
-//Arduino board connection
+// shoutout to the user
+console.log('Magic happens on port ' + port);
 
-var board = new five.Board();
-board.on("ready", function() {
-    console.log('Arduino connected');
-    led = new five.Led(2);
-});
-
-//Socket connection handler
-io.on('connection', function (socket) {
-        console.log(socket.id);
-
-        socket.on('led:on', function (data) {
-           led.on();
-           console.log('LED ON RECEIVED');
-        });
-
-        socket.on('led:off', function (data) {
-            led.off();
-            console.log('LED OFF RECEIVED');
-
-        });
-    });
-
-console.log('Waiting for connection');
+// expose app
+exports = module.exports = app;            
